@@ -9,7 +9,14 @@ func main() {
 	router := gin.Default()
 	router.LoadHTMLGlob("backend/web/views/**/*")
 	router.Static("/assets", "backend/web/assets")
-	router.GET("/order", ctrls.OrderShowAction)
+	orderRou := router.Group("/order")
+	{
+		orderRou.GET("/", ctrls.OrderShowAction)
+	}
+	productRou := router.Group("/product")
+	{
+		productRou.GET("/", ctrls.ProductListAction)
+	}
 
 	router.Run(":8000")
 }

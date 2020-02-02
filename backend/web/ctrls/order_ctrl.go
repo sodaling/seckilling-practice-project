@@ -6,8 +6,9 @@ import (
 	"seckilling-practice-project/services"
 )
 
+var defaultOrderSer = services.DefaultOrderService()
+
 func OrderShowAction(c *gin.Context) {
-	defaultOrderSer := services.DefaultOrderService()
 	orderArray, err := defaultOrderSer.GetAllOrderInfo()
 	if err != nil {
 		log.Fatalln("查询订单信息失败", err)
