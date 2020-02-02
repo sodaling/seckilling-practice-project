@@ -16,7 +16,8 @@ func main() {
 	productRou := router.Group("/product")
 	{
 		productRou.GET("/", ctrls.ProductListAction)
-		productRou.PUT("/", ctrls.ProductUpdateAction)
+		productRou.POST("/update", ctrls.ProductUpdateAction)
+		productRou.GET("/manager", ctrls.ProductManagerAction)
 	}
 
 	router.Run(":8000")
