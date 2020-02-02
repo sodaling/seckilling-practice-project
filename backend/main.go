@@ -18,6 +18,9 @@ func main() {
 		productRou.GET("/", ctrls.ProductListAction)
 		productRou.POST("/update", ctrls.ProductUpdateAction)
 		productRou.GET("/manager", ctrls.ProductManagerAction)
+		productRou.GET("/delete", ctrls.ProductDeleteAction)
+		productRou.GET("/add", ctrls.ProductAddShowAction)
+		productRou.POST("/add", ctrls.ProductAddAction)
 	}
 
 	router.Run(":8000")
