@@ -58,7 +58,7 @@ func NewOrderService(orderRepository respsoiories.IOrderRepository) IOrderServic
 }
 
 func DefaultOrderService() IOrderService {
-	mysqlCon, err := common.NewMysqlConn()
+	mysqlCon, err := common.DefaultDb()
 	if err != nil {
 		panic(err)
 	}

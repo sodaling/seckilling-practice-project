@@ -2,13 +2,33 @@ package common
 
 import (
 	"database/sql"
+	"sync"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
+var defaultDb *sql.DB
+var defaultDBlock sync.RWMutex
+
 func NewMysqlConn() (*sql.DB, error) {
 	db, err := sql.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/miaosha?charset=utf8")
 	return db, err
+}
+
+func DefaultDb() (*sql.DB, error) {
+	defaultDBlock.RLock()
+	if defaultDb != nil {
+		defaultDBlock.RUnlock()
+		return defaultDb, nil
+	}
+	defaultDBlock.RUnlock()
+	defaultDBlock.Lock()
+	defaultDb, err := NewMysqlConn()
+	defaultDBlock.Unlock()
+	if err != nil {
+		return &sql.DB{}, err
+	}
+	return defaultDb, nil
 }
 
 func GetResultRow(rows *sql.Rows) map[string]string {

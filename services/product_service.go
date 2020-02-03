@@ -48,7 +48,7 @@ func NewProductService(productRepository respsoiories.Iproduct) IproductSerive {
 }
 
 func DefaultProductService() IproductSerive {
-	mysqlCon, err := common.NewMysqlConn()
+	mysqlCon, err := common.DefaultDb()
 	if err != nil {
 		panic(err)
 	}
