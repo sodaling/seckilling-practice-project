@@ -24,3 +24,6 @@
 *.iml
 out
 gen
+
+# ignore generate html
+fronted/web/htmlProductShow/*

@@ -23,7 +23,10 @@ func DefaultDb() (*sql.DB, error) {
 	}
 	defaultDBlock.RUnlock()
 	defaultDBlock.Lock()
-	defaultDb, err := NewMysqlConn()
+	var err error
+	if defaultDb == nil {
+		defaultDb, err = NewMysqlConn()
+	}
 	defaultDBlock.Unlock()
 	if err != nil {
 		return &sql.DB{}, err
