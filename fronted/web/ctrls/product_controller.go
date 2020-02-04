@@ -1,7 +1,6 @@
 package ctrls
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"html/template"
 	"log"
@@ -52,10 +51,15 @@ func generateStaticHtml(template *template.Template, fileName string, product *m
 			log.Println(err)
 		}
 	}
+	err := os.MkdirAll(filepath.Dir(fileName), 0777)
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
 	file, err := os.Create(fileName)
 	if err != nil {
-		fmt.Println(123)
 		log.Println(err)
+		os.Exit(1)
 	}
 	defer file.Close()
 	template.Execute(file, product)
