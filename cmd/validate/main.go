@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"seckilling-practice-project/common"
 	"strconv"
 	"sync"
@@ -124,11 +125,16 @@ func CheckUserInfo(req *http.Request) error {
 	if err != nil {
 		return err
 	}
-	signByte, err := common.DePwdCode(signCookie.Value)
+
+	//unescape because of gin cookie operation
+	uid, _ := url.QueryUnescape(uidCookie.Value)
+	sign, _ := url.QueryUnescape(signCookie.Value)
+
+	signByte, err := common.DePwdCode(sign)
 	if err != nil {
 		return err
 	}
-	if checkInfo(uidCookie.Value, string(signByte)) {
+	if checkInfo(uid, string(signByte)) {
 		return nil
 	}
 	return errors.New("auth failed")
