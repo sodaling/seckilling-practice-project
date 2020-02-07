@@ -1,12 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"seckilling-practice-project/common"
+	"seckilling-practice-project/models"
+	"seckilling-practice-project/rabbitmq"
 	"strconv"
 	"sync"
 )
@@ -19,12 +22,18 @@ var port = "8081"
 
 var hashConsistent *common.Consistent
 
+var GetOneIp = "127.0.0.1"
+
+var GetOnePort = "8084"
+
 type AccessControl struct {
 	sourceArray map[int]string
 	sync.RWMutex
 }
 
 var accessControl AccessControl
+
+var rabbitMQValite *rabbitmq.RabbitMQ
 
 func (m *AccessControl) GetNewRecord(uid int) interface{} {
 	m.RLock()
@@ -65,38 +74,44 @@ func (m *AccessControl) SetNewRocord(uid int) {
 	m.sourceArray[uid] = "test"
 }
 
-func (m *AccessControl) GetDataFromOtherMap(host string, request *http.Request) bool {
-	uidCookie, err := request.Cookie("uid")
+func GetUrl(url string, req *http.Request) (*http.Response, []byte, error) {
+	uidCookie, err := req.Cookie("uid")
 	if err != nil {
-		return false
+		return &http.Response{}, nil, err
 	}
-	signCookie, err := request.Cookie("sign")
+	signCookie, err := req.Cookie("sign")
 	if err != nil {
-		return false
+		return &http.Response{}, nil, err
 	}
 
-	req, err := http.NewRequest("GET", "http://"+host+":"+port+"/check", nil)
+	request, err := http.NewRequest("GET", "http://"+url+":"+port+"/check", nil)
 	if err != nil {
-		return false
+		return &http.Response{}, nil, err
 	}
 
 	cookieUid := &http.Cookie{Name: "uid", Value: uidCookie.Value, Path: "/"}
 	cookieSign := &http.Cookie{Name: "sign", Value: signCookie.Value, Path: "/"}
 	//添加cookie到模拟的请求中
-	req.AddCookie(cookieUid)
-	req.AddCookie(cookieSign)
+	request.AddCookie(cookieUid)
+	request.AddCookie(cookieSign)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return &http.Response{}, nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	return resp, body, err
+
+}
+func (m *AccessControl) GetDataFromOtherMap(host string, request *http.Request) bool {
+	resp, body, err := GetUrl("http://"+host+":"+port+"/checkRight", request)
 	if err != nil {
 		return false
 	}
-
 	if resp.StatusCode == http.StatusOK {
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return false
-		}
-
+		return false
 		if string(body) == "true" {
 			return true
 		} else {
@@ -104,11 +119,67 @@ func (m *AccessControl) GetDataFromOtherMap(host string, request *http.Request) 
 		}
 	}
 	return false
-
 }
 
 func Check(resp http.ResponseWriter, req *http.Request) {
-	resp.Write([]byte("okokokok"))
+	fmt.Println("Begin to check.")
+	queryForm, err := url.ParseQuery(req.URL.RawQuery)
+	if err != nil || len(queryForm) <= 0 {
+		resp.Write([]byte("false"))
+		return
+	}
+
+	productString := queryForm["productID"][0]
+	fmt.Println(productString)
+	userCookie, err := req.Cookie("uid")
+	if err != nil {
+		resp.Write([]byte("false"))
+		return
+	}
+
+	right := accessControl.GetDistuibutedRight(req)
+	if !right {
+		if err != nil {
+			resp.Write([]byte("false"))
+			return
+		}
+	}
+
+	getOneUrl := "http://" + GetOneIp + ":" + GetOnePort + "/getOne"
+	response, body, err := GetUrl(getOneUrl, req)
+	if err != nil {
+		resp.Write([]byte("false"))
+		return
+	}
+	if response.StatusCode == http.StatusOK && string(body) == "true" {
+
+		productID, err := strconv.ParseInt(productString, 10, 64)
+		if err != nil {
+			resp.Write([]byte("false"))
+			return
+		}
+
+		userID, err := strconv.ParseInt(userCookie.Value, 10, 64)
+		if err != nil {
+			resp.Write([]byte("false"))
+			return
+		}
+		message := models.NewMessage(productID, userID)
+		byteMessage, err := json.Marshal(message)
+		if err != nil {
+			resp.Write([]byte("false"))
+			return
+		}
+		err = rabbitMQValite.PublishSimple(string(byteMessage))
+		if err != nil {
+			resp.Write([]byte("false"))
+			return
+		}
+		resp.Write([]byte("true"))
+		return
+	}
+	resp.Write([]byte("false"))
+	return
 }
 
 func Auth(resp http.ResponseWriter, req *http.Request) error {
@@ -151,6 +222,7 @@ func main() {
 		hashConsistent.Add(v)
 	}
 
+	rabbitMQValite = rabbitmq.NewRabbitMQSimple("miaosha")
 	filter := common.NewFilter()
 	filter.RegisterFilterUri("check", Auth)
 	http.HandleFunc("/check", filter.Handler(Check))
