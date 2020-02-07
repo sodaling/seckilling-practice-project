@@ -2,6 +2,7 @@ package respsoiories
 
 import (
 	"database/sql"
+	"fmt"
 	"seckilling-practice-project/common"
 	"seckilling-practice-project/models"
 	"strconv"
@@ -84,12 +85,13 @@ func (o *OrderMangerRepository) Insert(order *models.Order) (int64, error) {
 	if err := o.Conn(); err != nil {
 		return 0, nil
 	}
-	sql := "INSERT 'order' SET userID=?,productID=?,orderStatus=?"
+	sql := "INSERT `order` SET userID=?,productID=?,orderStatus=?"
 	stmt, err := o.mysqlConn.Prepare(sql)
-	defer stmt.Close()
 	if err != nil {
+		fmt.Println(err)
 		return 0, nil
 	}
+	defer stmt.Close()
 	result, err := stmt.Exec(order.UserId, order.ProductId, order.OrderStatus)
 	if err != nil {
 		return 0, nil

@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"seckilling-practice-project/common"
 	"seckilling-practice-project/models"
 	"seckilling-practice-project/rabbitmq"
@@ -16,9 +17,9 @@ import (
 
 var hostArray = []string{"127.0.0.1", "127.0.0.1"}
 
-var localHost = "127.0.0.1"
+var localHost string
 
-var port = "8081"
+var port = "8000"
 
 var hashConsistent *common.Consistent
 
@@ -50,7 +51,8 @@ func (m *AccessControl) GetDistuibutedRight(req *http.Request) bool {
 	if err != nil {
 		return false
 	}
-
+	fmt.Println(localHost)
+	fmt.Println(hostRequest)
 	if hostRequest == localHost {
 		return m.GetDataFromMap(uid.Value)
 	} else {
@@ -58,15 +60,16 @@ func (m *AccessControl) GetDistuibutedRight(req *http.Request) bool {
 	}
 }
 func (m *AccessControl) GetDataFromMap(key string) bool {
-	uid, err := strconv.Atoi(key)
-	if err != nil {
-		return false
-	}
-	if data := m.GetNewRecord(uid); data == nil {
-		return false
-	} else {
-		return true
-	}
+	//uid, err := strconv.Atoi(key)
+	//if err != nil {
+	//	return false
+	//}
+	//if data := m.GetNewRecord(uid); data == nil {
+	//	return false
+	//} else {
+	//	return true
+	//}
+	return true
 }
 func (m *AccessControl) SetNewRocord(uid int) {
 	m.Lock()
@@ -83,8 +86,7 @@ func GetUrl(url string, req *http.Request) (*http.Response, []byte, error) {
 	if err != nil {
 		return &http.Response{}, nil, err
 	}
-
-	request, err := http.NewRequest("GET", "http://"+url+":"+port+"/check", nil)
+	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return &http.Response{}, nil, err
 	}
@@ -97,6 +99,7 @@ func GetUrl(url string, req *http.Request) (*http.Response, []byte, error) {
 
 	resp, err := http.DefaultClient.Do(request)
 	if err != nil {
+		fmt.Println(err)
 		return &http.Response{}, nil, err
 	}
 	defer resp.Body.Close()
@@ -111,7 +114,6 @@ func (m *AccessControl) GetDataFromOtherMap(host string, request *http.Request) 
 		return false
 	}
 	if resp.StatusCode == http.StatusOK {
-		return false
 		if string(body) == "true" {
 			return true
 		} else {
@@ -139,10 +141,8 @@ func Check(resp http.ResponseWriter, req *http.Request) {
 
 	right := accessControl.GetDistuibutedRight(req)
 	if !right {
-		if err != nil {
-			resp.Write([]byte("false"))
-			return
-		}
+		resp.Write([]byte("false"))
+		return
 	}
 
 	getOneUrl := "http://" + GetOneIp + ":" + GetOnePort + "/getOne"
@@ -221,11 +221,33 @@ func main() {
 	for _, v := range hostArray {
 		hashConsistent.Add(v)
 	}
+	var err error
+	localHost, err = common.GetIntranceIp()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	rabbitMQValite = rabbitmq.NewRabbitMQSimple("miaosha")
 	filter := common.NewFilter()
 	filter.RegisterFilterUri("check", Auth)
 	http.HandleFunc("/check", filter.Handler(Check))
+	http.HandleFunc("/checkRight", filter.Handler(CheckRight))
 
 	http.ListenAndServe(":8000", nil)
+}
+
+func CheckRight(resp http.ResponseWriter, req *http.Request) {
+	uidCookie, err := req.Cookie("uid")
+	if err != nil {
+		resp.Write([]byte("false"))
+		return
+	}
+	uid := uidCookie.Value
+	isOk := accessControl.GetDataFromMap(uid)
+	if isOk {
+		resp.Write([]byte("true"))
+	} else {
+		resp.Write([]byte("false"))
+	}
 }

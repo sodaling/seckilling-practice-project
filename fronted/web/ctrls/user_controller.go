@@ -37,14 +37,14 @@ func UserLoginAction(c *gin.Context) {
 
 func login(user *models.User, c *gin.Context) {
 	uidInt64 := strconv.FormatInt(user.ID, 10)
-	c.SetCookie("uid", uidInt64, 3600, "/", "localhost", false, true)
+	c.SetCookie("uid", uidInt64, 3600*24, "/", "localhost", false, true)
 	uidByte := []byte(uidInt64)
 	uidString, err := common.EnPwdCode(uidByte)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	c.SetCookie("sign", uidString, 3600, "/", "localhost", false, true)
+	c.SetCookie("sign", uidString, 3600*24, "/", "localhost", false, true)
 }
 
 func UserRegisterAction(c *gin.Context) {

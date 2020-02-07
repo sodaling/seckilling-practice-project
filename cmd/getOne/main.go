@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 )
@@ -20,6 +21,7 @@ func GetProduct(writer http.ResponseWriter, request *http.Request) {
 	} else {
 		writer.Write([]byte("false"))
 	}
+	fmt.Println(Sum)
 }
 
 func GetOneProduct() bool {
