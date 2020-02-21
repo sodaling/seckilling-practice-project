@@ -6,7 +6,7 @@ import (
 	"seckilling-practice-project/respsoiories"
 )
 
-type IproductSerive interface {
+type IProductService interface {
 	GetProductByID(int64) (*models.Product, error)
 	GetAllProduct() ([]*models.Product, error)
 	DeleteProductByID(int64) bool
@@ -43,11 +43,11 @@ func (p *ProductService) SubNumberOne(productID int64) error {
 	return p.productRepository.SubProductNum(productID)
 }
 
-func NewProductService(productRepository respsoiories.Iproduct) IproductSerive {
+func NewProductService(productRepository respsoiories.Iproduct) IProductService {
 	return &ProductService{productRepository: productRepository}
 }
 
-func DefaultProductService() IproductSerive {
+func DefaultProductService() IProductService {
 	mysqlCon, err := common.DefaultDb()
 	if err != nil {
 		panic(err)

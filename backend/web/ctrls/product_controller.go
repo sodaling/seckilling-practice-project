@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-var defaultProSer services.IproductSerive
+var defaultProSer services.IProductService
 
 func init() {
 	defaultProSer = services.DefaultProductService()
