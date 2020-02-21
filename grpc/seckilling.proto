@@ -1,0 +1,16 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+
+package grpc;
+
+service GetOneService {
+    rpc GetOne (google.protobuf.Empty) returns (Result) {
+    }
+}
+
+message Result {
+    bool value = 1;
+}
+
+message emptyParams {
+}
