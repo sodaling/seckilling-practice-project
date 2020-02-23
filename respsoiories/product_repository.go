@@ -133,7 +133,7 @@ func (p *ProductManger) SubProductNum(productID int64) error {
 		return err
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(productID)
+	_, err = stmt.Exec()
 	return err
 }
 
