@@ -11,7 +11,7 @@ import (
 )
 
 // 连接信息
-const _MQUrl = "amqp://imoocuser:imoocuser@127.0.0.1:5672/imooc"
+const _MQUrl = "amqp://soda:soda@127.0.0.1:5672/miaosha"
 
 type RabbitMq struct {
 	conn    *amqp.Connection

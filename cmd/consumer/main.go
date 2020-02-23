@@ -23,5 +23,5 @@ func main() {
 	orderSer := services.NewOrderService(orderResp)
 
 	rabbitmqConsumeSimple := rabbitmq.NewRabbitMQSimple("miaosha")
-	rabbitmqConsumeSimple.ComSumeSimple(orderSer, productSer)
+	rabbitmqConsumeSimple.ConsumeSimple(orderSer, productSer)
 }

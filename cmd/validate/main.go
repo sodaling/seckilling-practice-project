@@ -42,7 +42,7 @@ func (m *AccessControl) GetNewRecord(uid int) interface{} {
 	return m.sourceArray[uid]
 }
 
-func (m *AccessControl) GetDistuibutedRight(req *http.Request) bool {
+func (m *AccessControl) GetDistributedRight(req *http.Request) bool {
 	uid, err := req.Cookie("uid")
 	if err != nil {
 		return false
@@ -139,7 +139,7 @@ func Check(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	right := accessControl.GetDistuibutedRight(req)
+	right := accessControl.GetDistributedRight(req)
 	if !right {
 		resp.Write([]byte("false"))
 		return
