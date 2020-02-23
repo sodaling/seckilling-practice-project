@@ -34,7 +34,7 @@ type AccessControl struct {
 
 var accessControl AccessControl
 
-var rabbitMQValite *rabbitmq.RabbitMQ
+var rabbitMQValite *rabbitmq.RabbitMq
 
 func (m *AccessControl) GetNewRecord(uid int) interface{} {
 	m.RLock()
