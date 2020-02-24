@@ -2,6 +2,8 @@ package common
 
 import (
 	"database/sql"
+	"fmt"
+	"seckilling-practice-project/configs"
 	"sync"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -9,9 +11,12 @@ import (
 
 var defaultDb *sql.DB
 var defaultDBlock sync.RWMutex
+var _mysqlDsnTemp = "%s:%s@tcp(%s:3306)/miaosha?charset=utf8"
 
 func NewMysqlConn() (*sql.DB, error) {
-	db, err := sql.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/miaosha?charset=utf8")
+	config := configs.Cfg
+	dsn := fmt.Sprintf(_mysqlDsnTemp, config.Database.Username, config.Database.Password, config.Server.Host)
+	db, err := sql.Open("mysql", dsn)
 	return db, err
 }
 

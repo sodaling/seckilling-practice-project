@@ -27,3 +27,6 @@ gen
 
 # ignore generate html
 fronted/web/htmlProductShow/*
+
+# ignore yaml file
+*.yml

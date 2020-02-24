@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"github.com/streadway/amqp"
 	"log"
+	"seckilling-practice-project/configs"
 	"seckilling-practice-project/models"
 	"seckilling-practice-project/services"
 	"sync"
 )
 
 // 连接信息
-const _MQUrl = "amqp://soda:soda@127.0.0.1:5672/miaosha"
+const _MQUrlTem = "amqp://%s:%s@%s:5672/miaosha"
 
 type RabbitMq struct {
 	conn    *amqp.Connection
@@ -28,7 +29,9 @@ type RabbitMq struct {
 
 // 创建结构实体
 func NewRabbitMq(queueName string, exchange string, key string) *RabbitMq {
-	return &RabbitMq{QueueName: queueName, Exchange: exchange, key: key, MqUrl: _MQUrl}
+	config := configs.Cfg
+	dsn := fmt.Sprintf(_MQUrlTem, config.MQ.Username, config.MQ.Password, config.Server.Host)
+	return &RabbitMq{QueueName: queueName, Exchange: exchange, key: key, MqUrl: dsn}
 }
 
 // 断开channel和connection
