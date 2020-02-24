@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes/empty"
 	"google.golang.org/grpc"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"seckilling-practice-project/common"
+	"seckilling-practice-project/configs"
 	pb "seckilling-practice-project/grpc"
 	"seckilling-practice-project/models"
 	"seckilling-practice-project/rabbitmq"
@@ -20,8 +20,6 @@ import (
 	"sync"
 	"time"
 )
-
-var hostArray = []string{"127.0.0.1", "127.0.0.1"}
 
 var localHost string
 
@@ -83,39 +81,8 @@ func (m *AccessControl) SetNewRocord(uid int) {
 	m.sourceArray[uid] = "test"
 }
 
-func GetUrl(url string, req *http.Request) (*http.Response, []byte, error) {
-	uidCookie, err := req.Cookie("uid")
-	if err != nil {
-		return &http.Response{}, nil, err
-	}
-	signCookie, err := req.Cookie("sign")
-	if err != nil {
-		return &http.Response{}, nil, err
-	}
-	request, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return &http.Response{}, nil, err
-	}
-
-	cookieUid := &http.Cookie{Name: "uid", Value: uidCookie.Value, Path: "/"}
-	cookieSign := &http.Cookie{Name: "sign", Value: signCookie.Value, Path: "/"}
-	//添加cookie到模拟的请求中
-	request.AddCookie(cookieUid)
-	request.AddCookie(cookieSign)
-
-	resp, err := http.DefaultClient.Do(request)
-	if err != nil {
-		fmt.Println(err)
-		return &http.Response{}, nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	return resp, body, err
-
-}
 func (m *AccessControl) GetDataFromOtherMap(host string, request *http.Request) bool {
-	resp, body, err := GetUrl("http://"+host+":"+port+"/checkRight", request)
+	resp, body, err := common.GetUrl("http://"+host+":"+port+"/checkRight", request)
 	if err != nil {
 		return false
 	}
@@ -228,7 +195,7 @@ func checkInfo(checkStr, signStr string) bool {
 
 func main() {
 	hashConsistent = common.NewConsistent()
-	for _, v := range hostArray {
+	for _, v := range configs.Cfg.NODES.Address {
 		hashConsistent.Add(v)
 	}
 	var err error

@@ -20,6 +20,9 @@ type Config struct {
 		Username string `yaml:"user", envconfig:"MQ_USERNAME"`
 		Password string `yaml:"pass", envconfig:"MQ_PASSWORD"`
 	} `yaml:"mq"`
+	NODES struct {
+		Address []string `yaml:"addr,flow", envconfig:"NODES_ADDR"`
+	} `yaml:"nodes"`
 }
 
 var Cfg Config
