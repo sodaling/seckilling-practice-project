@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package grpc;
+
+service CheckRightService {
+    rpc CheckRight (Uid) returns (isOk) {
+    }
+}
+
+message isOk {
+    bool value = 1;
+}
+
+message Uid {
+    string value = 1;
+}
