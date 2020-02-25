@@ -31,7 +31,7 @@ func init() {
 	Cfg = Config{}
 	readFile(&Cfg)
 	readEnv(&Cfg)
-	fmt.Printf("%+v", Cfg)
+	fmt.Printf("%+v\n", Cfg)
 
 }
 

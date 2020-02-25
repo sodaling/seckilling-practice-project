@@ -20,10 +20,10 @@ func GetServerCreds() (credentials.TransportCredentials, error) {
 	certPool := x509.NewCertPool()
 	ca, err := ioutil.ReadFile(path.Join(projectPath, "keys", "ca", "ca.crt"))
 	if err != nil {
-		log.Fatal(err)
+		grpcHandleErr("get ca err:", err)
 	}
 	if ok := certPool.AppendCertsFromPEM(ca); !ok {
-		log.Fatal("failed to append certs")
+		log.Panic("failed to append certs")
 	}
 
 	creds := credentials.NewTLS(&tls.Config{
@@ -49,7 +49,6 @@ func GetClientCreds() (credentials.TransportCredentials, error) {
 	}
 	if ok := certPool.AppendCertsFromPEM(ca); !ok {
 		err := errors.New("failed to append ca certs")
-		log.Fatalln(err)
 		return nil, err
 	}
 	creds := credentials.NewTLS(&tls.Config{
@@ -80,6 +79,11 @@ func GetGrpcClientConn(address string) *grpc.ClientConn {
 func grpcHandleErr(str string, err error) {
 	// 在初始化grpc遇到error都作为panic处理
 	if err != nil {
-		panic(str + err.Error())
+		log.Panic(str + err.Error())
 	}
+}
+
+func GetGrpcCrtKey() (string, string) {
+	certPath := path.Join(configs.GetProjectPath(), "keys", "server")
+	return path.Join(certPath, "server.crt"), path.Join(certPath, "server.key")
 }

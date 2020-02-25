@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"seckilling-practice-project/backend/web/ctrls"
+	"seckilling-practice-project/common"
 )
 
 func main() {
@@ -23,5 +24,6 @@ func main() {
 		productRou.POST("/add", ctrls.ProductAddAction)
 	}
 
-	router.Run(":8000")
+	crt, key := common.GetGrpcCrtKey()
+	router.RunTLS(":8000", crt, key)
 }

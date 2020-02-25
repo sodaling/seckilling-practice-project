@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang/protobuf/ptypes/empty"
-	"google.golang.org/grpc"
 	"log"
 	"net/http"
 	"net/url"
@@ -17,84 +16,24 @@ import (
 	"seckilling-practice-project/models"
 	"seckilling-practice-project/rabbitmq"
 	"strconv"
-	"sync"
+	"strings"
 	"time"
 )
 
 var localHost string
 
-var port = "8000"
+var port = ":8000"
 
 var hashConsistent *common.Consistent
 
-var gRpcAddress = "localhost:50051"
+var getOneSerAddress = "localhost:50051"
 
-var gRpcClient pb.GetOneServiceClient
+var getOneClient pb.GetOneServiceClient
+var checkRightClient pb.CheckRightServiceClient
 
-type AccessControl struct {
-	sourceArray map[int]string
-	sync.RWMutex
-}
-
-var accessControl AccessControl
+var accessControl *common.AccessControl
 
 var rabbitMQValidate *rabbitmq.RabbitMq
-
-func (m *AccessControl) GetNewRecord(uid int) interface{} {
-	m.RLock()
-	defer m.RUnlock()
-	return m.sourceArray[uid]
-}
-
-func (m *AccessControl) GetDistributedRight(req *http.Request) bool {
-	uid, err := req.Cookie("uid")
-	if err != nil {
-		return false
-	}
-	hostRequest, err := hashConsistent.Get(uid.Value)
-	if err != nil {
-		return false
-	}
-	fmt.Println(localHost)
-	fmt.Println(hostRequest)
-	if hostRequest == localHost {
-		return m.GetDataFromMap(uid.Value)
-	} else {
-		return m.GetDataFromOtherMap(hostRequest, req)
-	}
-}
-func (m *AccessControl) GetDataFromMap(key string) bool {
-	//uid, err := strconv.Atoi(key)
-	//if err != nil {
-	//	return false
-	//}
-	//if data := m.GetNewRecord(uid); data == nil {
-	//	return false
-	//} else {
-	//	return true
-	//}
-	return true
-}
-func (m *AccessControl) SetNewRocord(uid int) {
-	m.Lock()
-	defer m.Unlock()
-	m.sourceArray[uid] = "test"
-}
-
-func (m *AccessControl) GetDataFromOtherMap(host string, request *http.Request) bool {
-	resp, body, err := common.GetUrl("http://"+host+":"+port+"/checkRight", request)
-	if err != nil {
-		return false
-	}
-	if resp.StatusCode == http.StatusOK {
-		if string(body) == "true" {
-			return true
-		} else {
-			return false
-		}
-	}
-	return false
-}
 
 func Check(resp http.ResponseWriter, req *http.Request) {
 	fmt.Println("Begin to check.")
@@ -105,31 +44,43 @@ func Check(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	productString := queryForm["productID"][0]
-	fmt.Println(productString)
 	userCookie, err := req.Cookie("uid")
 	if err != nil {
 		resp.Write([]byte("false"))
 		return
 	}
 
-	right := accessControl.GetDistributedRight(req)
+	// 根据哈希一致性得到的地址调用checkright服务
+	addr, err := GetDistributedAddr(req)
+	if err != nil {
+		resp.Write([]byte("false"))
+		return
+	}
+	gRpcConn := common.GetGrpcClientConn(addr)
+	checkRightClient = pb.NewCheckRightServiceClient(gRpcConn)
+	defer gRpcConn.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	r, err := checkRightClient.CheckRight(ctx, &pb.Uid{Value: userCookie.Value})
+	if err != nil {
+		log.Fatalf("could not greet: %v", err)
+	}
+	right := r.Value
+	cancel()
 	if !right {
 		resp.Write([]byte("false"))
 		return
 	}
 
 	// 通过grpc获得getone结果
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	r, err := gRpcClient.GetOne(ctx, &empty.Empty{})
+	getone, err := getOneClient.GetOne(ctx, &empty.Empty{})
 	if err != nil {
 		resp.Write([]byte("false"))
 		return
 	}
-	if r.GetValue() {
-
+	if getone.GetValue() {
 		productID, err := strconv.ParseInt(productString, 10, 64)
 		if err != nil {
 			resp.Write([]byte("false"))
@@ -193,7 +144,31 @@ func checkInfo(checkStr, signStr string) bool {
 	return checkStr == signStr
 }
 
+type server struct {
+	pb.UnimplementedCheckRightServiceServer
+}
+
+//实现CheckOneServiceServer
+func (s *server) CheckRight(ctx context.Context, req *pb.Uid) (*pb.IsOk, error) {
+	uid := req.GetValue()
+	isOk := accessControl.GetDataFromMap(uid)
+	return &pb.IsOk{Value: isOk}, nil
+}
+
+func GetDistributedAddr(req *http.Request) (string, error) {
+	uid, err := req.Cookie("uid")
+	if err != nil {
+		return "", err
+	}
+	hostRequest, err := hashConsistent.Get(uid.Value)
+	if err != nil {
+		return "", err
+	}
+	return hostRequest + port, nil
+}
+
 func main() {
+	accessControl = common.GetAccessControl()
 	hashConsistent = common.NewConsistent()
 	for _, v := range configs.Cfg.NODES.Address {
 		hashConsistent.Add(v)
@@ -205,34 +180,40 @@ func main() {
 		os.Exit(1)
 	}
 
+	// 创建GetRight的grpc服务
+	grpcServer := common.GetGrpcServer()
+	pb.RegisterCheckRightServiceServer(grpcServer, &server{})
+
 	// 创建grpc连接
-	gRpcConn, err := grpc.Dial(gRpcAddress, grpc.WithInsecure(), grpc.WithBlock())
+	gRpcConn := common.GetGrpcClientConn(getOneSerAddress)
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
 	defer gRpcConn.Close()
-	gRpcClient = pb.NewGetOneServiceClient(gRpcConn)
+	getOneClient = pb.NewGetOneServiceClient(gRpcConn)
 
 	rabbitMQValidate = rabbitmq.NewRabbitMQSimple("miaosha")
 	filter := common.NewFilter()
 	filter.RegisterFilterUri("check", Auth)
-	http.HandleFunc("/check", filter.Handler(Check))
-	http.HandleFunc("/checkRight", filter.Handler(CheckRight))
+	mux := http.NewServeMux()
+	mux.HandleFunc("/check", filter.Handler(Check))
 
-	http.ListenAndServe(":8000", nil)
-}
+	crt, key := common.GetGrpcCrtKey()
+	http.ListenAndServeTLS(port, crt, key,
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.ProtoMajor != 2 {
+				mux.ServeHTTP(w, r)
+				return
+			}
+			if strings.Contains(
+				r.Header.Get("Content-Type"), "application/grpc",
+			) {
+				grpcServer.ServeHTTP(w, r) // gRPC Server
+				return
+			}
 
-func CheckRight(resp http.ResponseWriter, req *http.Request) {
-	uidCookie, err := req.Cookie("uid")
-	if err != nil {
-		resp.Write([]byte("false"))
-		return
-	}
-	uid := uidCookie.Value
-	isOk := accessControl.GetDataFromMap(uid)
-	if isOk {
-		resp.Write([]byte("true"))
-	} else {
-		resp.Write([]byte("false"))
-	}
+			mux.ServeHTTP(w, r)
+			return
+		}),
+	)
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"seckilling-practice-project/common"
 	"seckilling-practice-project/fronted/web/ctrls"
 )
 
@@ -23,5 +24,6 @@ func main() {
 		productRou.GET("/generate_html/:productID", ctrls.GenerateHtml)
 	}
 
-	router.Run(":8000")
+	crt, key := common.GetGrpcCrtKey()
+	router.RunTLS(":8000", crt, key)
 }
