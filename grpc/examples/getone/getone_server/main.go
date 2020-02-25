@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/protobuf/ptypes/empty"
-	"google.golang.org/grpc"
 	"log"
 	"net"
+	"seckilling-practice-project/common"
 	pb "seckilling-practice-project/grpc"
 	"sync"
 )
@@ -21,7 +21,6 @@ type server struct {
 }
 
 //实现GetOneServiceServer
-
 func (s *server) GetOne(ctx context.Context, req *empty.Empty) (*pb.Result, error) {
 	if GetOneProduct() {
 		fmt.Println(Sum)
@@ -45,10 +44,11 @@ func GetOneProduct() bool {
 
 func main() {
 	lis, err := net.Listen("tcp", port)
+	defer lis.Close()
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer()
+	s := common.GetGrpcServer()
 	pb.RegisterGetOneServiceServer(s, &server{})
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

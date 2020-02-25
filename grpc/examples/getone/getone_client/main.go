@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"github.com/golang/protobuf/ptypes/empty"
-	"google.golang.org/grpc"
 	"log"
+	"seckilling-practice-project/common"
 	"time"
 
 	pb "seckilling-practice-project/grpc"
@@ -15,10 +15,7 @@ const (
 )
 
 func main() {
-	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
-	}
+	conn := common.GetGrpcClientConn(address)
 	defer conn.Close()
 	c := pb.NewGetOneServiceClient(conn)
 

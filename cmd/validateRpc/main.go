@@ -38,7 +38,7 @@ type AccessControl struct {
 
 var accessControl AccessControl
 
-var rabbitMQValite *rabbitmq.RabbitMq
+var rabbitMQValidate *rabbitmq.RabbitMq
 
 func (m *AccessControl) GetNewRecord(uid int) interface{} {
 	m.RLock()
@@ -147,7 +147,7 @@ func Check(resp http.ResponseWriter, req *http.Request) {
 			resp.Write([]byte("false"))
 			return
 		}
-		err = rabbitMQValite.PublishSimple(string(byteMessage))
+		err = rabbitMQValidate.PublishSimple(string(byteMessage))
 		if err != nil {
 			resp.Write([]byte("false"))
 			return
@@ -205,6 +205,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// 创建grpc连接
 	gRpcConn, err := grpc.Dial(gRpcAddress, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
@@ -212,7 +213,7 @@ func main() {
 	defer gRpcConn.Close()
 	gRpcClient = pb.NewGetOneServiceClient(gRpcConn)
 
-	rabbitMQValite = rabbitmq.NewRabbitMQSimple("miaosha")
+	rabbitMQValidate = rabbitmq.NewRabbitMQSimple("miaosha")
 	filter := common.NewFilter()
 	filter.RegisterFilterUri("check", Auth)
 	http.HandleFunc("/check", filter.Handler(Check))

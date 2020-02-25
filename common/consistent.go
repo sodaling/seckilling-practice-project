@@ -25,8 +25,11 @@ func (x uints) Swap(i, j int) {
 var errEmpty = errors.New("the hash circle is empty")
 
 type Consistent struct {
-	circle      map[uint32]string
-	sortedHash  uints
+	// 哈希环
+	circle map[uint32]string
+	// 排序后的节点位置
+	sortedHash uints
+	// 虚拟节点个数
 	virtualNode int
 	sync.RWMutex
 }
@@ -53,6 +56,7 @@ func (c *Consistent) Add(element string) {
 }
 
 func (c *Consistent) add(element string) {
+	// 添加元素时候注意生产虚拟节点
 	for i := 0; i < c.virtualNode; i++ {
 		c.circle[c.hashkey(c.generateKey(element, i))] = element
 	}
@@ -61,6 +65,7 @@ func (c *Consistent) add(element string) {
 
 func (c *Consistent) updateSortedHash() {
 	sortedHash := c.sortedHash[:0]
+	// 防止底层数组长度过大
 	if cap(sortedHash)/c.virtualNode > len(c.circle) {
 		sortedHash = nil
 	}
@@ -99,6 +104,7 @@ func (c *Consistent) Get(name string) (string, error) {
 }
 
 func (c *Consistent) search(key uint32) int {
+	// 获取顺时针第一个节点
 	f := func(i int) bool { return c.sortedHash[i] > key }
 	i := sort.Search(len(c.sortedHash), f)
 	if i >= len(c.sortedHash) {

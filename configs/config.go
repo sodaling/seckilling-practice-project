@@ -43,10 +43,7 @@ func readEnv(c *Config) {
 }
 
 func readFile(c *Config) {
-	rootPath, err := GetProjectPath()
-	if err != nil {
-		panic("error while reading config")
-	}
+	rootPath := GetProjectPath()
 	f, err := os.Open(path.Join(rootPath, "configs", "config.yml"))
 	if err != nil {
 		processError(err)
@@ -63,10 +60,10 @@ func processError(err error) {
 	fmt.Println(err)
 	os.Exit(2)
 }
-func GetProjectPath() (string, error) {
+func GetProjectPath() string {
 	dir, err := os.Getwd()
 	if err != nil {
-		return "", err
+		panic("error while reading config")
 	}
-	return dir, nil
+	return dir
 }
