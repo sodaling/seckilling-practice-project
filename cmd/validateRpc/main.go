@@ -20,22 +20,17 @@ import (
 	"time"
 )
 
-var localHost string
-
-var port = ":8000"
-
-var hashConsistent *common.Consistent
-
-var getOneSerAddress = "localhost:50051"
-
-var checkRightClient pb.CheckRightServiceClient
-
-var accessControl *common.AccessControl
-
-var rabbitMQValidate *rabbitmq.RabbitMq
-
-var redisClient *redis.Client
-var luaScript *redis.Script
+var (
+	localHost string
+	port = ":8000"
+	hashConsistent *common.Consistent
+	getOneSerAddress = "localhost:50051"
+	checkRightClient pb.CheckRightServiceClient
+	accessControl *common.AccessControl
+	rabbitMQValidate *rabbitmq.RabbitMq
+	redisClient *redis.Client
+	luaScript   *redis.Script
+)
 
 func Check(resp http.ResponseWriter, req *http.Request) {
 	fmt.Println("Begin to check.")
