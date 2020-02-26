@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/go-redis/redis"
 	"log"
 	"net/http"
 	"net/url"
@@ -28,12 +28,14 @@ var hashConsistent *common.Consistent
 
 var getOneSerAddress = "localhost:50051"
 
-var getOneClient pb.GetOneServiceClient
 var checkRightClient pb.CheckRightServiceClient
 
 var accessControl *common.AccessControl
 
 var rabbitMQValidate *rabbitmq.RabbitMq
+
+var redisClient *redis.Client
+var luaScript *redis.Script
 
 func Check(resp http.ResponseWriter, req *http.Request) {
 	fmt.Println("Begin to check.")
@@ -70,19 +72,22 @@ func Check(resp http.ResponseWriter, req *http.Request) {
 		resp.Write([]byte("false"))
 		return
 	}
-
-	// 通过grpc获得getone结果
-	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	getone, err := getOneClient.GetOne(ctx, &empty.Empty{})
+	productKey := productString + "_balance"
+	res, err := luaScript.Run(redisClient, []string{productKey}, 1).Result()
+	if err != nil {
+		log.Println(err)
+		resp.Write([]byte("false"))
+		return
+	}
+	balanceStr := res.(string)
+	banlanceInt, err := strconv.Atoi(balanceStr)
 	if err != nil {
 		resp.Write([]byte("false"))
 		return
 	}
-	if getone.GetValue() {
-		productID, err := strconv.ParseInt(productString, 10, 64)
+	if banlanceInt > 0 {
 		if err != nil {
+			log.Println(err)
 			resp.Write([]byte("false"))
 			return
 		}
@@ -92,6 +97,7 @@ func Check(resp http.ResponseWriter, req *http.Request) {
 			resp.Write([]byte("false"))
 			return
 		}
+		productID, err := strconv.ParseInt(productString, 10, 64)
 		message := models.NewMessage(productID, userID)
 		byteMessage, err := json.Marshal(message)
 		if err != nil {
@@ -126,8 +132,14 @@ func CheckUserInfo(req *http.Request) error {
 	}
 
 	//unescape because of gin cookie operation
-	uid, _ := url.QueryUnescape(uidCookie.Value)
-	sign, _ := url.QueryUnescape(signCookie.Value)
+	uid, err := url.QueryUnescape(uidCookie.Value)
+	if err != nil {
+		return err
+	}
+	sign, err := url.QueryUnescape(signCookie.Value)
+	if err != nil {
+		return err
+	}
 
 	signByte, err := common.DePwdCode(sign)
 	if err != nil {
@@ -168,37 +180,44 @@ func GetDistributedAddr(req *http.Request) (string, error) {
 }
 
 func main() {
-	accessControl = common.GetAccessControl()
-	hashConsistent = common.NewConsistent()
-	for _, v := range configs.Cfg.NODES.Address {
-		hashConsistent.Add(v)
-	}
 	var err error
 	localHost, err = common.GetIntranceIp()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		panic(err)
 	}
+	accessControl = common.GetAccessControl()
+	hashConsistent = common.NewConsistent()
+	redisClient = common.GetRedisClient()
+	luaScript, err = common.GetDecrbyScr()
+	if err != nil {
+		log.Panic(err)
+	}
+	// 创建grpc连接
+	gRpcConn := common.GetGrpcClientConn(getOneSerAddress)
+	if err != nil {
+		log.Panicf("did not connect: %v", err)
+	}
+	defer gRpcConn.Close()
+	crt, key := common.GetGrpcCrtKey()
+	rabbitMQValidate = rabbitmq.NewRabbitMQSimple("miaosha")
 
 	// 创建GetRight的grpc服务
 	grpcServer := common.GetGrpcServer()
 	pb.RegisterCheckRightServiceServer(grpcServer, &server{})
 
-	// 创建grpc连接
-	gRpcConn := common.GetGrpcClientConn(getOneSerAddress)
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+	for _, v := range configs.Cfg.NODES.Address {
+		hashConsistent.Add(v)
 	}
-	defer gRpcConn.Close()
-	getOneClient = pb.NewGetOneServiceClient(gRpcConn)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
-	rabbitMQValidate = rabbitmq.NewRabbitMQSimple("miaosha")
 	filter := common.NewFilter()
 	filter.RegisterFilterUri("check", Auth)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/check", filter.Handler(Check))
 
-	crt, key := common.GetGrpcCrtKey()
 	http.ListenAndServeTLS(port, crt, key,
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.ProtoMajor != 2 {
@@ -211,7 +230,6 @@ func main() {
 				grpcServer.ServeHTTP(w, r) // gRPC Server
 				return
 			}
-
 			mux.ServeHTTP(w, r)
 			return
 		}),
