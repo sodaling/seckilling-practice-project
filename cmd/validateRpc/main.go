@@ -21,15 +21,14 @@ import (
 )
 
 var (
-	localHost string
-	port = ":8000"
-	hashConsistent *common.Consistent
-	getOneSerAddress = "localhost:50051"
+	localHost        string
+	port             = ":8000"
+	hashConsistent   *common.Consistent
 	checkRightClient pb.CheckRightServiceClient
-	accessControl *common.AccessControl
+	accessControl    *common.AccessControl
 	rabbitMQValidate *rabbitmq.RabbitMq
-	redisClient *redis.Client
-	luaScript   *redis.Script
+	redisClient      *redis.Client
+	luaScript        *redis.Script
 )
 
 func Check(resp http.ResponseWriter, req *http.Request) {
@@ -182,17 +181,11 @@ func main() {
 	}
 	accessControl = common.GetAccessControl()
 	hashConsistent = common.NewConsistent()
-	redisClient = common.GetRedisClient()
+	redisClient = common.GetClientFromSen()
 	luaScript, err = common.GetDecrbyScr()
 	if err != nil {
 		log.Panic(err)
 	}
-	// 创建grpc连接
-	gRpcConn := common.GetGrpcClientConn(getOneSerAddress)
-	if err != nil {
-		log.Panicf("did not connect: %v", err)
-	}
-	defer gRpcConn.Close()
 	crt, key := common.GetGrpcCrtKey()
 	rabbitMQValidate = rabbitmq.NewRabbitMQSimple("miaosha")
 

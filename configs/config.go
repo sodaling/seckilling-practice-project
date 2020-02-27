@@ -24,7 +24,8 @@ type Config struct {
 		Address []string `yaml:"addr,flow", envconfig:"NODES_ADDR"`
 	} `yaml:"nodes"`
 	Redis struct {
-		Address string `yaml:"addr,flow", envconfig:"REDIS_ADDR"`
+		Address    string `yaml:"addr,flow", envconfig:"REDIS_ADDR"`
+		SenAddress string `yaml:"sen,flow", envconfig:"REDIS_SEN"`
 	} `yaml:"redis"`
 }
 
