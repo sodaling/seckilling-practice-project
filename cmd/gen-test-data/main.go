@@ -20,7 +20,7 @@ func main() {
 	var products []*models.Product
 
 	// 生成1000个用户，用户名格式为soda1到soda1000,密码都为1234
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= 1000; i++ {
 		uName := "soda" + strconv.Itoa(i)
 		user := &models.User{UserName: uName, NickName: uName, HashPassword: "1234"}
 		uid, err := userSer.AddUser(user)
