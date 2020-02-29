@@ -69,7 +69,7 @@ func Check(resp http.ResponseWriter, req *http.Request) {
 	productKey := productString + "_balance"
 	res, err := luaScript.Run(redisClient, []string{productKey}, 1).Result()
 	if err != nil {
-		log.Println(err)
+		log.Println("reduce the product balance error:",err)
 		resp.Write([]byte("false"))
 		return
 	}
@@ -100,6 +100,7 @@ func Check(resp http.ResponseWriter, req *http.Request) {
 		}
 		err = rabbitMQValidate.PublishSimple(string(byteMessage))
 		if err != nil {
+			log.Println("publish the msg err：L",err)
 			resp.Write([]byte("false"))
 			return
 		}

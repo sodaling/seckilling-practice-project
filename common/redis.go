@@ -51,10 +51,11 @@ func GetClientFromSen() *redis.Client {
 		}
 		redisClient = redis.NewClient(&redis.Options{
 			Addr:     strings.Join(result, ":"),
-			Password: "", // no password set
+			Password: "1234", // no password set
 			DB:       0,  // use default DB
 			PoolSize: 1000,
 		})
+		sen.Close()
 	}
 	return redisClient
 }

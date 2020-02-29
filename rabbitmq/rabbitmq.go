@@ -73,7 +73,7 @@ func (r *RabbitMq) PublishSimple(message string) error {
 	}
 
 	// 这边exchange是空
-	r.channel.Publish(r.Exchange, r.QueueName, false, false, amqp.Publishing{
+	err = r.channel.Publish(r.Exchange, r.QueueName, false, false, amqp.Publishing{
 		ContentType:  "text/plain",
 		Body:         []byte(message),
 		DeliveryMode: amqp.Persistent,
@@ -86,7 +86,7 @@ func (r *RabbitMq) ConsumeSimple(orderService services.IOrderService, productSer
 	//1.申请队列，如果队列不存在会自动创建，存在则跳过创建
 	q, err := r.channel.QueueDeclare(
 		r.QueueName,
-		false,
+		true,
 		false,
 		//是否具有排他性
 		false,
