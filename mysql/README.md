@@ -8,6 +8,7 @@ $ docker run --name miaosha-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=123456 -d 
 1. 新建miaosha数据库,CHARSET=utf8mb4 COLLATE=utf8_unicode_ci
 2. 在同目录下的scheme下的sql文件导入到miaosha数据库中。
 
+上面是简单的单实例mysql启动方式。
 因为在秒杀中，mysql的瓶颈一般在消化订单的写入部分，所以这边就不附上索引等等相关的内容了。而在秒杀中需要保证的是mysql的高可用，所以，这边对mysql做的是主从复制的配置。这边因为机器缺乏，所以还是用docker-compose的方式配置。
 
 # 正文
