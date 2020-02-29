@@ -55,7 +55,7 @@ func NewUserService(userRepository respsoiories.IUserRepository) IUserService {
 	return &UserService{UserRepository: userRepository}
 }
 
-func DefaultUserSerivice() IUserService {
+func DefaultUserService() IUserService {
 	mysqlCon, err := common.DefaultDb()
 	if err != nil {
 		panic(err)

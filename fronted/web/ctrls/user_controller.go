@@ -24,7 +24,7 @@ func UserLoginAction(c *gin.Context) {
 		userName = c.PostForm("userName")
 		password = c.PostForm("password")
 	)
-	userSer := services.DefaultUserSerivice()
+	userSer := services.DefaultUserService()
 	user, isOK := userSer.IsPwdSuccess(userName, password)
 	if !isOK {
 		log.Println(userName + ":password is wrong")
@@ -54,7 +54,7 @@ func UserRegisterAction(c *gin.Context) {
 		c.Redirect(http.StatusSeeOther, "/user/error")
 		return
 	}
-	userSer := services.DefaultUserSerivice()
+	userSer := services.DefaultUserService()
 	_, err := userSer.AddUser(user)
 	if err != nil {
 		log.Panicln(err)

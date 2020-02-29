@@ -80,12 +80,6 @@ func Check(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if banlanceInt > 0 {
-		if err != nil {
-			log.Println(err)
-			resp.Write([]byte("false"))
-			return
-		}
-
 		userID, err := strconv.ParseInt(userCookie.Value, 10, 64)
 		if err != nil {
 			resp.Write([]byte("false"))
