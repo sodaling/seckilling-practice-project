@@ -67,15 +67,16 @@ func (r *RabbitMq) PublishSimple(message string) error {
 	// channel并不是线程安全，这边加锁来使用
 	r.Lock()
 	defer r.Unlock()
-	_, err := r.channel.QueueDeclare(r.QueueName, false, false, false, false, nil)
+	_, err := r.channel.QueueDeclare(r.QueueName, true, false, false, false, nil)
 	if err != nil {
 		return err
 	}
 
 	// 这边exchange是空
 	r.channel.Publish(r.Exchange, r.QueueName, false, false, amqp.Publishing{
-		ContentType: "text/plain",
-		Body:        []byte(message),
+		ContentType:  "text/plain",
+		Body:         []byte(message),
+		DeliveryMode: amqp.Persistent,
 	})
 	return nil
 }
