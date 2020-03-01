@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"seckilling-practice-project/common"
-	"seckilling-practice-project/fronted/web/ctrls"
+	"seckilling-practice-project/frontend/web/ctrls"
 )
 
 func main() {

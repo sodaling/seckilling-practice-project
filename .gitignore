@@ -26,7 +26,7 @@ out
 gen
 
 # ignore generate html
-fronted/web/htmlProductShow/*
+frontend/web/htmlProductShow/*
 
 # ignore yaml file
 *.yml
