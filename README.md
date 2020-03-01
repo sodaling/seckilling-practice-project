@@ -40,10 +40,13 @@
 
 `mysql`：MySQL在秒杀环境下主从配置的相关知识和docke化的配置
 
-`backend`：网站商品管理端
+`backend`：网站商品管理端（gin实现）
 
-`frontend`：网站用户注册和生成cdn静态页面相关
+`frontend`：网站用户注册和生成cdn静态页面相关（gin实现）
 
 `grpc`：因为利用分布式的来实现哈希一致性，所以利用grpc来在集群中通信
 
 `keys`:全站包括grpc相互调用开启https。这边是相关的key。
+
+`cmd`:分布式服务相关代码，生产测试数据相关代码。
+
